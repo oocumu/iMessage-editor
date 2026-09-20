@@ -653,7 +653,7 @@ function loadSaved(){
       if (d && Array.isArray(d.blocks)){ state = sanitize(d); return; }
     }
   }catch(e){}
-  state.blocks = sample();
+  state.blocks = [];
 }
 
 let saveTimer, warned = false;
