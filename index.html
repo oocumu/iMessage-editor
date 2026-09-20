@@ -587,7 +587,7 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clamp = (v, a, b) => { v = Number(v); if (!isFinite(v)) v = a; return Math.min(b, Math.max(a, v)); };
 const HEX = /^#[0-9a-f]{6}$/i;
-const KEY = 'chat-backup-editor:v1';
+const KEY = 'chat-backup-editor:v2';
 
 let toastTimer;
 function toast(msg){
@@ -611,15 +611,6 @@ const MODE_DEF = {
   dark: { lbg:'#262629', lfg:'#ffffff' }
 };
 const TL = { msg:'대사', photo:'사진', narr:'나레이션', stamp:'시간', typing:'입력 중' };
-
-const sample = () => ([
-  { id:uid(), type:'stamp',  bold:'오늘', normal:'오후 3:24' },
-  { id:uid(), type:'msg', side:'left',  text:'저녁에 시간 돼?', align:'left' },
-  { id:uid(), type:'msg', side:'left',  text:'새로 생긴 라멘집 가보고 싶은데 🍜', align:'left' },
-  { id:uid(), type:'msg', side:'right', text:'오 좋아! 몇 시에 볼까?', align:'left', react:'heart', reactBy:'other' },
-  { id:uid(), type:'msg', side:'right', text:'6시 어때?', align:'left', status:'read', statusTime:'오후 3:26' },
-  { id:uid(), type:'typing', side:'left' }
-]);
 
 let state = { settings: DEFAULTS(), blocks: [] };
 let editingId = null;
