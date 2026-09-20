@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>대화 백업 에디터</title>
+<meta name="description" content="아이메시지 스타일 채팅을 만들고 PNG 또는 HTML로 저장하세요.">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<!-- ───────────── 에디터(사이트) 스타일 ───────────── -->
+<style id="appCss">
+:root{
+  --p:#7c5cf5; --p2:#6b49ea; --pl:#f0ebff; --pll:#f8f6ff;
+  --ink:#221b3d; --mut:#6d6887; --line:#e9e4f7; --wash:#f4f1fd;
+  --danger:#e5484d;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:#fff;color:var(--ink);
+  font:14px/1.55 Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+[hidden]{display:none!important}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--p);outline-offset:2px}
+
+/* 레이아웃 */
+.app{display:grid;grid-template-columns:minmax(360px,450px) minmax(0,1fr);min-height:100vh}
+.side{padding:26px 24px 56px;background:#fff;border-right:1px solid var(--line);min-width:0}
+.pv{
+  position:sticky;top:0;height:100vh;padding:18px 22px 22px;
+  display:flex;flex-direction:column;gap:14px;background:var(--wash);min-width:0;
+}
+
+/* 브랜드 */
+.brand{display:flex;align-items:center;gap:12px;padding-bottom:22px}
+.logo{
+  width:44px;height:44px;border-radius:14px;flex:none;display:grid;place-items:center;
+  background:linear-gradient(140deg,#9d82ff,#7c5cf5 60%,#6b49ea);
+  box-shadow:0 8px 18px -8px rgba(124,92,245,.7);
+}
+h1{font-size:21px;margin:0;letter-spacing:-.4px;line-height:1.25}
+.brand p{margin:2px 0 0;color:var(--mut);font-size:13px}
+
+/* 섹션 */
+.sec{padding:20px 0;border-top:1px solid var(--line)}
+.sec-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:2px}
+.sec-h h2{font-size:15px;margin:0;letter-spacing:-.2px}
+.sec-h .n{color:var(--p);font-weight:700}
+.link{border:0;background:none;color:var(--p);font-weight:600;font-size:13px;padding:2px 4px}
+.link:hover{text-decoration:underline}
+
+/* 폼 요소 */
+.field{display:flex;flex-direction:column;gap:6px;margin-top:14px}
+.lb,label.lb{font-size:12px;font-weight:600;color:var(--mut)}
+input[type=text],input[type=number],select,textarea{
+  width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:#fff;outline:none;
+  transition:border-color .15s,box-shadow .15s;
+}
+input[type=text]:focus,input[type=number]:focus,select:focus,textarea:focus{
+  border-color:var(--p);box-shadow:0 0 0 3px rgba(124,92,245,.16);
+}
+textarea{resize:vertical;min-height:74px;line-height:1.5}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.check{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;font-weight:500;cursor:pointer}
+.check input{accent-color:var(--p);width:16px;height:16px;margin:0}
+.check .grow{flex:1}
+.inline{display:flex;align-items:center;gap:10px}
+.inline input[type=text]{flex:1}
+.hint{font-size:12px;color:var(--mut);margin:8px 0 0}
+
+/* 세그먼트 */
+.seg{display:flex;background:var(--pl);border-radius:11px;padding:3px;gap:2px}
+.seg button{
+  flex:1;border:0;background:transparent;border-radius:8px;padding:7px 6px;
+  font-size:13px;font-weight:600;color:var(--mut);white-space:nowrap;transition:background .15s,color .15s;
+}
+.seg button:hover{color:var(--p)}
+.seg button.on{background:#fff;color:var(--p);box-shadow:0 1px 3px rgba(60,40,140,.16)}
+.seg.types{margin-top:14px}
+
+/* 버튼 */
+.btn{
+  border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 15px;font-weight:600;font-size:13px;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:background .15s,border-color .15s;
+}
+.btn:hover{background:var(--pll);border-color:#d5ccf7}
+.btn.primary{background:var(--p);border-color:var(--p);color:#fff}
+.btn.primary:hover{background:var(--p2);border-color:var(--p2)}
+.btn.danger{color:var(--danger)}
+.btn.danger:hover{background:#fff1f1;border-color:#f6c9cb}
+.btn.sm{padding:6px 11px;font-size:12px;border-radius:9px}
+.btn.wide{width:100%;margin-top:18px;padding:11px}
+.btn:disabled{opacity:.6;cursor:progress}
+
+/* 색상 입력 */
+.clr{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:6px 10px 6px 7px;background:#fff}
+.clr input{width:30px;height:30px;padding:0;border:0;background:none;cursor:pointer;flex:none}
+.clr input::-webkit-color-swatch-wrapper{padding:0}
+.clr input::-webkit-color-swatch{border:1px solid rgba(0,0,0,.12);border-radius:8px}
+.clr input::-moz-color-swatch{border:1px solid rgba(0,0,0,.12);border-radius:8px}
+.clr span{font-size:12px;font-weight:600;color:var(--mut);flex:1}
+.clr code{font:12px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--mut)}
+.grid-clr{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.presets{display:flex;gap:9px;flex-wrap:wrap}
+.chip{width:30px;height:30px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);padding:0;transition:transform .12s}
+.chip:hover{transform:scale(1.1)}
+
+/* 사진 */
+.photo-pick{display:flex;align-items:center;gap:10px}
+.photo-pick img{width:56px;height:56px;border-radius:12px;object-fit:cover;border:1px solid var(--line)}
+.avrow{display:flex;align-items:center;gap:10px}
+.avprev{
+  width:46px;height:46px;border-radius:50%;overflow:hidden;background:linear-gradient(#c4c7cf,#9195a0);
+  color:#fff;display:grid;place-items:center;font-size:20px;font-weight:500;flex:none;
+}
+.avprev img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* 블록 목록 */
+.list{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:440px;overflow:auto}
+.item{display:flex;align-items:center;gap:8px;padding:8px 6px 8px 10px;border:1px solid var(--line);border-radius:11px;background:#fff;cursor:pointer}
+.item:hover{background:var(--pll)}
+.item.sel{border-color:var(--p);background:var(--pl)}
+.no{width:18px;text-align:center;font-size:11px;color:var(--mut);font-weight:700;flex:none}
+.dot{width:8px;height:8px;border-radius:50%;flex:none}
+.dot.left{background:#cfc9e6}
+.dot.right{background:var(--p)}
+.tag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--pl);color:var(--p);white-space:nowrap;flex:none}
+.sum{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sum .th{width:22px;height:22px;border-radius:5px;object-fit:cover;vertical-align:middle;margin-right:6px}
+.ops{display:flex;gap:1px;flex:none}
+.ops button{border:0;background:transparent;width:26px;height:26px;border-radius:7px;color:var(--mut);font-size:13px;line-height:1}
+.ops button:hover{background:var(--pl);color:var(--p)}
+.ops button[data-op=del]:hover{background:#fdecec;color:var(--danger)}
+.empty-list{color:var(--mut);text-align:center;padding:24px 0;font-size:13px}
+
+/* 설정 그룹 */
+details{border-top:1px solid var(--line);padding:2px 0 16px}
+details:first-of-type{border-top:0}
+summary{
+  list-style:none;cursor:pointer;font-weight:700;font-size:13px;padding:14px 0 2px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"";width:8px;height:8px;border-right:2px solid var(--mut);border-bottom:2px solid var(--mut);transform:rotate(45deg);transition:transform .15s;margin-right:3px}
+details[open] summary::after{transform:rotate(-135deg)}
+
+/* 미리보기 패널 */
+.pv-h{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.pv-h strong{font-size:15px;letter-spacing:-.2px}
+.pv-h small{display:block;color:var(--mut);font-size:12px}
+.pv-actions{display:flex;gap:8px}
+.stage{
+  flex:1;min-height:0;overflow:auto;border-radius:20px;background:#fff;border:1px solid var(--line);
+  padding:26px 20px;
+  background-image:radial-gradient(#e6e0f8 1px,transparent 1px);background-size:18px 18px;
+}
+.stage .chat{box-shadow:0 24px 60px -24px rgba(70,40,160,.38),0 0 0 1px rgba(60,40,140,.06);border-radius:4px}
+
+/* 토스트 · 모달 */
+.toast{
+  position:fixed;left:50%;bottom:26px;transform:translate(-50%,16px);background:#2a2150;color:#fff;
+  padding:11px 18px;border-radius:12px;font-size:13px;font-weight:500;opacity:0;pointer-events:none;
+  transition:opacity .2s,transform .2s;z-index:100;max-width:90vw;
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.modal{position:fixed;inset:0;background:rgba(34,27,61,.5);display:grid;place-items:center;z-index:90;padding:16px}
+.modal-box{background:#fff;border-radius:20px;padding:22px;width:min(360px,100%);box-shadow:0 30px 80px -20px rgba(34,27,61,.5)}
+.modal-box h3{margin:0 0 14px;font-size:16px}
+.modal-box canvas{display:block;width:100%;max-width:280px;aspect-ratio:1;margin:0 auto;border-radius:12px;touch-action:none;cursor:grab;background:#eee}
+.modal-box canvas:active{cursor:grabbing}
+.zoom{display:flex;align-items:center;gap:12px;margin:16px 0 4px;font-size:12px;font-weight:600;color:var(--mut)}
+.zoom input{flex:1;accent-color:var(--p)}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+
+@media (max-width:980px){
+  .app{grid-template-columns:1fr}
+  .side{border-right:0}
+  .pv{position:static;height:auto;padding:18px 14px 28px}
+  .stage{flex:none;max-height:78vh}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<!-- ───────────── 채팅 화면 스타일 (HTML 저장 시 그대로 포함됨) ───────────── -->
+<style id="chatCss">
+.chat{
+  width:var(--w);margin:0 auto;background:var(--bg);color:var(--text);position:relative;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Apple SD Gothic Neo",Pretendard,"Noto Sans KR","Malgun Gothic",system-ui,sans-serif;
+  font-size:var(--fs);line-height:1.3;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+.chat *{box-sizing:border-box;margin:0}
+.chat.live .c-hd{position:sticky;top:0;z-index:20}
+
+/* 헤더 */
+.c-hd{background:var(--hbg);border-bottom:.5px solid var(--line)}
+.c-sb{height:46px;display:flex;align-items:center;justify-content:space-between;padding:10px 30px 0 38px}
+.c-sb .t{font-size:16px;font-weight:600;letter-spacing:-.2px}
+.c-sb .ic{display:flex;align-items:center;gap:6px}
+.c-nav{display:grid;grid-template-columns:1fr auto 1fr;align-items:start;padding:4px 14px 9px}
+.c-back{display:flex;align-items:center;gap:5px;padding-top:9px}
+.c-badge{
+  min-width:21px;height:21px;border-radius:11px;padding:0 6px;background:var(--accent);color:#fff;
+  font-size:12px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;
+}
+.c-who{display:flex;flex-direction:column;align-items:center;gap:4px}
+.c-av{
+  width:48px;height:48px;border-radius:50%;overflow:hidden;color:#fff;font-size:22px;font-weight:500;
+  display:flex;align-items:center;justify-content:center;
+}
+.c-av img{width:100%;height:100%;display:block;object-fit:cover}
+.c-nm{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:500;line-height:1.2}
+.c-vid{display:flex;justify-content:flex-end;padding-top:12px}
+
+/* 본문 */
+.c-body{padding:12px 0 14px;min-height:240px}
+.c-row{display:flex;flex-direction:column;padding:0 18px;margin-top:2px}
+.c-row.c-r{align-items:flex-end}
+.c-row.c-l{align-items:flex-start}
+.c-row.gs{margin-top:10px}
+.c-row.hr{margin-top:17px}
+.c-row.gs.hr{margin-top:21px}
+.c-row>*+*{margin-top:2px}
+.c-row.tp{margin-bottom:10px}
+
+.c-bub{
+  position:relative;max-width:76%;padding:7px 13px 8px;border-radius:18px;
+  font-size:var(--fs);line-height:1.28;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;
+}
+.c-bub.tr{border-bottom-right-radius:0}
+.c-bub.tl{border-bottom-left-radius:0}
+.c-tail{position:absolute;bottom:0;display:block;pointer-events:none}
+.c-tail.r{right:-11px}
+.c-tail.l{left:-11px}
+
+/* 사진 */
+.c-photo{position:relative;width:64%;max-width:100%}
+.c-photo img{display:block;width:100%;height:auto;max-height:340px;object-fit:cover;border-radius:18px}
+.c-photo.sq img{border-radius:4px}
+
+/* 탭백 */
+.c-react{
+  position:absolute;top:-14px;width:27px;height:27px;border-radius:50%;border:2px solid var(--bg);z-index:2;
+  display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;line-height:1;letter-spacing:-.2px;
+}
+.c-l .c-react{right:-11px}
+.c-r .c-react{left:-11px}
+
+/* 전송 상태 */
+.c-status{font-size:11px;line-height:1.2;color:var(--meta);padding-right:2px;margin-top:3px!important}
+.c-status b{font-weight:600}
+
+/* 시간 · 나레이션 */
+.c-stamp{text-align:center;font-size:11px;line-height:1.3;color:var(--meta);margin:16px 0 6px}
+.c-stamp b{font-weight:600}
+.c-narr{text-align:center;font-size:13px;line-height:1.45;margin:10px 0;padding:0 36px;white-space:pre-wrap;overflow-wrap:anywhere}
+
+/* 입력 중 */
+.c-typing{position:relative;display:flex;align-items:center;gap:5px;height:36px;padding:0 17px;border-radius:18px}
+.c-typing i{display:block;width:8px;height:8px;border-radius:50%}
+.c-typing b{position:absolute;display:block;border-radius:50%}
+.c-typing .c1{width:11px;height:11px;left:-2px;bottom:-3px}
+.c-typing .c2{width:6px;height:6px;left:-8px;bottom:-8px}
+
+/* 입력창 */
+.c-ib{padding:6px 12px 0;background:var(--bg)}
+.c-ibr{display:flex;align-items:center;gap:8px}
+.c-plus{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none}
+.c-inp{
+  flex:1;height:36px;border:1px solid;border-radius:18px;padding:0 9px 0 14px;
+  display:flex;align-items:center;justify-content:space-between;font-size:17px;
+}
+.c-home{width:134px;height:5px;border-radius:3px;margin:14px auto 8px}
+
+.c-empty{color:var(--meta);text-align:center;padding:90px 32px;font-size:13px;line-height:1.5}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+  <!-- ═════════ 왼쪽: 에디터 ═════════ -->
+  <aside class="side">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 3C6.8 3 3 6.5 3 11c0 2.4 1.1 4.5 2.900 6L5 21l4-1.900c.9.2 1.900.4 3 .4 5.200 0 9-3.500 9-8S17.200 3 12 3Z" fill="#fff"/><circle cx="8.500" cy="11.200" r="1.150" fill="#7c5cf5"/><circle cx="12" cy="11.200" r="1.150" fill="#7c5cf5"/><circle cx="15.500" cy="11.200" r="1.150" fill="#7c5cf5"/></svg>
+      </div>
+      <div>
+        <h1>대화 백업 에디터</h1>
+        <p>채팅을 만들고 PNG 또는 HTML로 내보내세요.</p>
+      </div>
+    </div>
+
+    <!-- 블록 추가 -->
+    <section class="sec" id="formSec">
+      <div class="sec-h">
+        <h2 id="formTitle">블록 추가</h2>
+        <button type="button" class="link" id="btnCancelEdit" hidden>수정 취소</button>
+      </div>
+
+      <div class="seg types" id="typeSeg" role="tablist" aria-label="블록 종류">
+        <button type="button" data-v="msg" class="on">대사</button>
+        <button type="button" data-v="photo">사진</button>
+        <button type="button" data-v="narr">나레이션</button>
+        <button type="button" data-v="stamp">시간</button>
+        <button type="button" data-v="typing">입력 중</button>
+      </div>
+
+      <div class="field" data-show="msg photo typing">
+        <span class="lb">말풍선 방향</span>
+        <div class="seg" id="sideSeg">
+          <button type="button" data-v="left" class="on">왼쪽 (받은 메시지)</button>
+          <button type="button" data-v="right">오른쪽 (보낸 메시지)</button>
+        </div>
+      </div>
+
+      <!-- 대사 -->
+      <div class="field" data-show="msg">
+        <label class="lb" for="fText">텍스트</label>
+        <textarea id="fText" rows="3" placeholder="메시지를 입력하세요  (Ctrl/⌘ + Enter로 추가)"></textarea>
+      </div>
+      <div class="field" data-show="msg">
+        <span class="lb">텍스트 정렬 (말풍선 안)</span>
+        <div class="seg" id="alignSeg">
+          <button type="button" data-v="left" class="on">왼쪽</button>
+          <button type="button" data-v="center">가운데</button>
+          <button type="button" data-v="right">오른쪽</button>
+        </div>
+      </div>
+
+      <!-- 사진 -->
+      <div class="field" data-show="photo">
+        <span class="lb">보낼 사진</span>
+        <div class="photo-pick">
+          <img id="photoPrev" alt="선택한 사진" hidden>
+          <button type="button" class="btn sm" id="btnPickPhoto">사진 선택</button>
+          <button type="button" class="btn sm danger" id="btnClearPhoto" hidden>삭제</button>
+          <input type="file" id="fPhoto" accept="image/*" hidden>
+        </div>
+      </div>
+      <div class="field" data-show="photo">
+        <span class="lb">사진 모서리</span>
+        <div class="seg" id="cornerSeg">
+          <button type="button" data-v="round" class="on">둥근 모서리</button>
+          <button type="button" data-v="square">각진 네모</button>
+        </div>
+      </div>
+      <div class="field" data-show="photo">
+        <label class="lb" for="fPText">같이 보낼 텍스트 (선택)</label>
+        <textarea id="fPText" rows="2" placeholder="사진 아래에 말풍선으로 붙어요"></textarea>
+      </div>
+
+      <!-- 탭백 · 전송 상태 -->
+      <div class="row2" data-show="msg photo">
+        <div class="field">
+          <label class="lb" for="fReact">탭백 반응</label>
+          <select id="fReact">
+            <option value="">없음</option>
+            <option value="heart">하트</option>
+            <option value="up">좋아요</option>
+            <option value="down">싫어요</option>
+            <option value="haha">HaHa</option>
+            <option value="excl">강조 (!!)</option>
+            <option value="ques">물음표 (?)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="lb" for="fReactBy">반응한 사람</label>
+          <select id="fReactBy">
+            <option value="other">상대</option>
+            <option value="me">나</option>
+          </select>
+        </div>
+      </div>
+      <div class="row2" data-show="msg photo" data-need="right">
+        <div class="field">
+          <label class="lb" for="fStatus">전송 상태</label>
+          <select id="fStatus">
+            <option value="">표시 안 함</option>
+            <option value="delivered">전달됨</option>
+            <option value="read">읽음</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="lb" for="fStatusTime">읽은 시간 (선택)</label>
+          <input type="text" id="fStatusTime" placeholder="오후 3:25" maxlength="20">
+        </div>
+      </div>
+
+      <!-- 말풍선 개별 색 -->
+      <div data-show="msg">
+        <label class="check"><input type="checkbox" id="fCustom"> 이 말풍선만 다른 색 사용 (예: SMS 초록)</label>
+        <div id="customColors" hidden>
+          <div class="grid-clr">
+            <label class="clr"><input type="color" id="fBg" value="#34c759"><span>말풍선</span><code>#34c759</code></label>
+            <label class="clr"><input type="color" id="fFg" value="#ffffff"><span>글자</span><code>#ffffff</code></label>
+          </div>
+          <button type="button" class="btn sm" id="btnSms" style="margin-top:10px">SMS 초록으로 채우기</button>
+        </div>
+      </div>
+
+      <!-- 나레이션 -->
+      <div class="field" data-show="narr">
+        <label class="lb" for="fNarr">나레이션 본문</label>
+        <textarea id="fNarr" rows="3" placeholder="예: 상대방이 대화에 참여했습니다."></textarea>
+      </div>
+      <div class="grid-clr" data-show="narr">
+        <label class="clr"><input type="color" id="fNColor" value="#8e8e93"><span>글자 색</span><code>#8e8e93</code></label>
+        <label class="check" style="margin-top:0"><input type="checkbox" id="fItalic"> 기울임</label>
+      </div>
+
+      <!-- 시간 -->
+      <div class="row2" data-show="stamp">
+        <div class="field">
+          <label class="lb" for="fBold">굵은 글씨</label>
+          <input type="text" id="fBold" placeholder="오늘" maxlength="30">
+        </div>
+        <div class="field">
+          <label class="lb" for="fNormal">일반 글씨</label>
+          <input type="text" id="fNormal" placeholder="오후 3:24" maxlength="30">
+        </div>
+      </div>
+      <p class="hint" data-show="stamp">대화 사이에 들어가는 날짜·시간 구분선이에요.</p>
+      <p class="hint" data-show="typing">상대가 입력 중일 때 나오는 점 세 개 말풍선이에요.</p>
+
+      <button type="button" class="btn primary wide" id="btnAdd">+ 블록 추가</button>
+    </section>
+
+    <!-- 블록 목록 -->
+    <section class="sec">
+      <div class="sec-h">
+        <h2>블록 목록 <span class="n" id="count">0</span></h2>
+      </div>
+      <ul class="list" id="list"></ul>
+      <p class="hint">블록을 누르면 수정할 수 있어요.</p>
+    </section>
+
+    <!-- 전체 설정 -->
+    <section class="sec">
+      <div class="sec-h"><h2>전체 설정</h2></div>
+
+      <details open>
+        <summary>상대 정보</summary>
+        <div class="row2">
+          <div class="field">
+            <label class="lb" for="sName">이름</label>
+            <input type="text" id="sName" maxlength="30">
+          </div>
+          <div class="field">
+            <label class="lb" for="sBadge">뒤로가기 알림 숫자</label>
+            <input type="text" id="sBadge" maxlength="3" placeholder="비우면 숨김">
+          </div>
+        </div>
+        <div class="field">
+          <span class="lb">프로필 사진</span>
+          <div class="avrow">
+            <div class="avprev" id="avPrev"></div>
+            <button type="button" class="btn sm" id="btnAv">사진 선택</button>
+            <button type="button" class="btn sm danger" id="btnAvDel" hidden>삭제</button>
+            <input type="file" id="fAv" accept="image/*" hidden>
+          </div>
+        </div>
+      </details>
+
+      <details open>
+        <summary>화면</summary>
+        <div class="field">
+          <span class="lb">모드</span>
+          <div class="seg" id="modeSeg">
+            <button type="button" data-v="light">라이트</button>
+            <button type="button" data-v="dark">다크</button>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label class="lb" for="sWidth">채팅 폭 (px)</label>
+            <input type="number" id="sWidth" min="280" max="800" step="10">
+          </div>
+          <div class="field">
+            <label class="lb" for="sFs">글자 크기 (px)</label>
+            <input type="number" id="sFs" min="12" max="26" step="1">
+          </div>
+        </div>
+        <label class="check"><input type="checkbox" id="sShowStatus"> 상태바 표시</label>
+        <div class="field" style="margin-top:8px">
+          <label class="lb" for="sTime">상태바 시간</label>
+          <input type="text" id="sTime" maxlength="8">
+        </div>
+        <label class="check"><input type="checkbox" id="sShowHeader"> 상단 대화 상대 표시</label>
+        <label class="check"><input type="checkbox" id="sShowInput"> 하단 입력창 표시</label>
+        <div class="field" style="margin-top:8px">
+          <label class="lb" for="sPh">입력창 문구</label>
+          <input type="text" id="sPh" maxlength="30">
+        </div>
+      </details>
+
+      <details open>
+        <summary>말풍선 색상</summary>
+        <div class="field">
+          <span class="lb">보낸 말풍선 빠른 선택</span>
+          <div class="presets" id="presets">
+            <button type="button" class="chip" data-c="#0a84ff" style="background:#0a84ff" title="아이메시지 파랑" aria-label="아이메시지 파랑"></button>
+            <button type="button" class="chip" data-c="#34c759" style="background:#34c759" title="SMS 초록" aria-label="SMS 초록"></button>
+            <button type="button" class="chip" data-c="#7c5cf5" style="background:#7c5cf5" title="퍼플" aria-label="퍼플"></button>
+            <button type="button" class="chip" data-c="#ff5c8a" style="background:#ff5c8a" title="핑크" aria-label="핑크"></button>
+            <button type="button" class="chip" data-c="#ff9f0a" style="background:#ff9f0a" title="오렌지" aria-label="오렌지"></button>
+            <button type="button" class="chip" data-c="#3a3a3c" style="background:#3a3a3c" title="차콜" aria-label="차콜"></button>
+          </div>
+        </div>
+        <div class="grid-clr">
+          <label class="clr"><input type="color" id="sLbg"><span>받은 말풍선</span><code></code></label>
+          <label class="clr"><input type="color" id="sLfg"><span>받은 글자</span><code></code></label>
+          <label class="clr"><input type="color" id="sRbg"><span>보낸 말풍선</span><code></code></label>
+          <label class="clr"><input type="color" id="sRfg"><span>보낸 글자</span><code></code></label>
+        </div>
+        <p class="hint">보낸 말풍선 색은 뒤로가기·영상통화 아이콘, 내가 남긴 탭백에도 적용돼요.</p>
+      </details>
+
+      <details>
+        <summary>저장 · 백업</summary>
+        <div class="field">
+          <label class="lb" for="sScale">PNG 해상도</label>
+          <select id="sScale">
+            <option value="1">1배 (기본 크기)</option>
+            <option value="2">2배 (선명)</option>
+            <option value="3">3배 (아주 선명)</option>
+          </select>
+        </div>
+        <div class="row2" style="margin-top:14px">
+          <button type="button" class="btn sm" id="btnJsonSave">프로젝트 파일 저장</button>
+          <button type="button" class="btn sm" id="btnJsonLoad">프로젝트 파일 열기</button>
+        </div>
+        <input type="file" id="fJson" accept=".json,application/json" hidden>
+        <p class="hint">작업 내용은 이 브라우저에 자동 저장돼요. 다른 기기로 옮기려면 프로젝트 파일을 사용하세요.</p>
+      </details>
+
+      <button type="button" class="btn danger wide" id="btnReset">전체 초기화</button>
+    </section>
+  </aside>
+
+  <!-- ═════════ 오른쪽: 미리보기 ═════════ -->
+  <main class="pv">
+    <div class="pv-h">
+      <div>
+        <strong>미리보기</strong>
+        <small>저장되는 결과와 같은 모습이에요</small>
+      </div>
+      <div class="pv-actions">
+        <button type="button" class="btn" id="btnHtml">HTML로 저장</button>
+        <button type="button" class="btn primary" id="btnPng">PNG로 저장</button>
+      </div>
+    </div>
+    <div class="stage" id="stage">
+      <div class="chat live" id="chat"></div>
+    </div>
+  </main>
+</div>
+
+<!-- 프로필 사진 자르기 -->
+<div class="modal" id="cropModal" hidden>
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="cropTitle">
+    <h3 id="cropTitle">프로필 사진 자르기</h3>
+    <canvas id="cropCv" width="280" height="280"></canvas>
+    <div class="zoom"><span>확대</span><input type="range" id="cropZoom" min="1" max="4" step="0.01" value="1" aria-label="확대"></div>
+    <p class="hint" style="margin:0">사진을 끌어서 위치를 맞춰 주세요.</p>
+    <div class="modal-actions">
+      <button type="button" class="btn" id="cropCancel">취소</button>
+      <button type="button" class="btn primary" id="cropOk">적용</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ───────── 유틸 ───────── */
+const $  = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const uid = () => Math.random().toString(36).slice(2, 10);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clamp = (v, a, b) => { v = Number(v); if (!isFinite(v)) v = a; return Math.min(b, Math.max(a, v)); };
+const HEX = /^#[0-9a-f]{6}$/i;
+const KEY = 'chat-backup-editor:v1';
+
+let toastTimer;
+function toast(msg){
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+/* ───────── 상태 ───────── */
+const DEFAULTS = () => ({
+  mode:'light', width:390, fs:17,
+  showStatus:true, time:'9:41', showHeader:true, showInput:true, placeholder:'iMessage',
+  name:'이름', badge:'3', avatar:'',
+  lbg:'#e9e9eb', lfg:'#000000', rbg:'#0a84ff', rfg:'#ffffff',
+  scale:2
+});
+const MODE_DEF = {
+  light:{ lbg:'#e9e9eb', lfg:'#000000' },
+  dark: { lbg:'#262629', lfg:'#ffffff' }
+};
+const TL = { msg:'대사', photo:'사진', narr:'나레이션', stamp:'시간', typing:'입력 중' };
+
+const sample = () => ([
+  { id:uid(), type:'stamp',  bold:'오늘', normal:'오후 3:24' },
+  { id:uid(), type:'msg', side:'left',  text:'저녁에 시간 돼?', align:'left' },
+  { id:uid(), type:'msg', side:'left',  text:'새로 생긴 라멘집 가보고 싶은데 🍜', align:'left' },
+  { id:uid(), type:'msg', side:'right', text:'오 좋아! 몇 시에 볼까?', align:'left', react:'heart', reactBy:'other' },
+  { id:uid(), type:'msg', side:'right', text:'6시 어때?', align:'left', status:'read', statusTime:'오후 3:26' },
+  { id:uid(), type:'typing', side:'left' }
+]);
+
+let state = { settings: DEFAULTS(), blocks: [] };
+let editingId = null;
+
+function sanitize(d){
+  const out = { settings: DEFAULTS(), blocks: [] };
+  if (d && typeof d.settings === 'object' && d.settings){
+    const def = DEFAULTS();
+    Object.keys(def).forEach(k => {
+      let v = d.settings[k];
+      if (v === undefined || v === null) return;
+      if (typeof def[k] === 'boolean') v = !!v;
+      else if (typeof def[k] === 'number') { v = Number(v); if (!isFinite(v)) return; }
+      else v = String(v);
+      if (['lbg','lfg','rbg','rfg'].includes(k) && !HEX.test(v)) return;
+      if (k === 'mode' && !(v === 'light' || v === 'dark')) return;
+      out.settings[k] = v;
+    });
+  }
+  if (d && Array.isArray(d.blocks)){
+    out.blocks = d.blocks.filter(b => b && TL[b.type]).map(b => Object.assign({}, b, { id: b.id || uid() }));
+  }
+  return out;
+}
+
+function loadSaved(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if (raw){
+      const d = JSON.parse(raw);
+      if (d && Array.isArray(d.blocks)){ state = sanitize(d); return; }
+    }
+  }catch(e){}
+  state.blocks = sample();
+}
+
+let saveTimer, warned = false;
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try{ localStorage.setItem(KEY, JSON.stringify(state)); }
+    catch(e){ if (!warned){ warned = true; toast('자동 저장 공간이 부족해요. 프로젝트 파일로 따로 저장해 두세요.'); } }
+  }, 250);
+}
+
+/* ───────── 테마 · 아이콘 (SVG는 색을 직접 지정해야 PNG에도 반영됨) ───────── */
+const TH = {
+  light:{ bg:'#ffffff', hbg:'#f7f7f7', text:'#000000', meta:'#8e8e93', line:'#d1d1d6', iline:'#c7c7cc', plus:'#e9e9eb', plusfg:'#8e8e93', hint:'#c7c7cc', rot:'#e5e5ea', rotfg:'#5c5c61', av1:'#c4c7cf', av2:'#9195a0' },
+  dark: { bg:'#000000', hbg:'#161618', text:'#ffffff', meta:'#8e8e93', line:'#38383a', iline:'#3a3a3c', plus:'#2c2c2e', plusfg:'#aeaeb2', hint:'#636366', rot:'#48484a', rotfg:'#f2f2f7', av1:'#6b6e78', av2:'#494b53' }
+};
+
+const I = {
+  back:  c => `<svg width="13" height="22" viewBox="0 0 13 22"><path d="M11 2 2.5 11 11 20" fill="none" stroke="${c}" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  chev:  c => `<svg width="6" height="10" viewBox="0 0 6 10"><path d="M1 1l4 4-4 4" fill="none" stroke="${c}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  video: c => `<svg width="30" height="20" viewBox="0 0 30 20"><rect x="1" y="1.5" width="19.500" height="17" rx="4.500" fill="${c}"/><path d="M22.500 8.200l5.100-3.600c.6-.4 1.400 0 1.400.8v9.200c0 .8-.8 1.200-1.400.8l-5.100-3.600z" fill="${c}"/></svg>`,
+  signal:c => `<svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1" fill="${c}"/><rect x="5" y="5.500" width="3" height="6.500" rx="1" fill="${c}"/><rect x="10" y="3" width="3" height="9" rx="1" fill="${c}"/><rect x="15" y="0" width="3" height="12" rx="1" fill="${c}"/></svg>`,
+  wifi:  c => `<svg width="17" height="12" viewBox="0 0 17 12"><path d="M8.500 2.400c2.300 0 4.400.9 6 2.400l1.100-1.200C13.800 1.900 11.300.8 8.500.8S3.200 1.900 1.400 3.600l1.100 1.200c1.600-1.500 3.700-2.400 6-2.400z" fill="${c}"/><path d="M8.500 5.900c1.400 0 2.600.5 3.600 1.400l1.100-1.200C11.900 4.900 10.300 4.200 8.500 4.200S5.100 4.900 3.800 6.100l1.100 1.200c1-.9 2.200-1.400 3.600-1.400z" fill="${c}"/><path d="M8.500 9.300c.7 0 1.300.3 1.800.7L8.500 12 6.700 10c.5-.4 1.100-.7 1.800-.7z" fill="${c}"/></svg>`,
+  battery:c=> `<svg width="27" height="13" viewBox="0 0 27 13"><rect x=".5" y=".5" width="23" height="12" rx="3.800" fill="none" stroke="${c}" stroke-opacity=".4"/><rect x="2" y="2" width="20" height="9" rx="2.500" fill="${c}"/><path d="M25 4.500v4c.8-.3 1.500-1.100 1.500-2s-.7-1.700-1.500-2z" fill="${c}" fill-opacity=".45"/></svg>`,
+  plus:  c => `<svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 2v12M2 8h12" stroke="${c}" stroke-width="2.200" stroke-linecap="round"/></svg>`,
+  mic:   c => `<svg width="16" height="22" viewBox="0 0 16 22"><rect x="4.500" y="1" width="7" height="12" rx="3.500" fill="${c}"/><path d="M2 10.500a6 6 0 0 0 12 0M8 16.500v3.500" fill="none" stroke="${c}" stroke-width="1.600" stroke-linecap="round"/></svg>`,
+  heart: c => `<svg width="14" height="14" viewBox="0 0 24 24"><path d="M12 21.350l-1.450-1.320C5.400 15.360 2 12.280 2 8.500 2 5.420 4.420 3 7.500 3c1.740 0 3.410.81 4.500 2.090C13.090 3.810 14.760 3 16.500 3 19.580 3 22 5.420 22 8.500c0 3.780-3.400 6.860-8.550 11.540L12 21.350z" fill="${c}"/></svg>`,
+  up:    c => `<svg width="14" height="14" viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zm22-11c0-1.100-.9-2-2-2h-6.310l.95-4.570.03-.32c0-.41-.17-.79-.44-1.060L14.170 1 7.590 7.590C7.220 7.950 7 8.450 7 9v10c0 1.100.9 2 2 2h9c.83 0 1.540-.5 1.840-1.220l3.020-7.050c.09-.23.14-.47.14-.73v-2z" fill="${c}"/></svg>`,
+  down:  c => `<svg width="14" height="14" viewBox="0 0 24 24"><path d="M15 3H6c-.83 0-1.540.5-1.840 1.220l-3.020 7.050c-.09.23-.14.47-.14.73v2c0 1.100.9 2 2 2h6.310l-.95 4.570-.03.32c0 .41.17.79.44 1.060L9.830 23l6.590-6.590c.36-.36.58-.86.58-1.410V5c0-1.100-.9-2-2-2zm4 0v12h4V3h-4z" fill="${c}"/></svg>`
+};
+
+function tail(side, c){
+  return side === 'right'
+    ? `<svg class="c-tail r" width="12" height="16" viewBox="0 0 12 16"><path d="M0 0C0 9 4.500 14.200 12 16H0Z" fill="${c}"/></svg>`
+    : `<svg class="c-tail l" width="12" height="16" viewBox="0 0 12 16"><path d="M12 0C12 9 7.500 14.200 0 16H12Z" fill="${c}"/></svg>`;
+}
+
+/* ───────── 채팅 HTML 생성 ───────── */
+function rootStyle(){
+  const s = state.settings, T = TH[s.mode];
+  const w = clamp(s.width, 280, 800), fs = clamp(s.fs, 12, 26);
+  return `--w:${w}px;--fs:${fs}px;--bg:${T.bg};--hbg:${T.hbg};--text:${T.text};--meta:${T.meta};--line:${T.line};--accent:${s.rbg}`;
+}
+
+function headerHTML(s, T){
+  let h = '';
+  if (s.showStatus){
+    h += `<div class="c-sb"><span class="t">${esc(s.time)}</span><span class="ic">${I.signal(T.text)}${I.wifi(T.text)}${I.battery(T.text)}</span></div>`;
+  }
+  if (s.showHeader){
+    const first = [...String(s.name || '?')][0] || '?';
+    const av = s.avatar ? `<img src="${esc(s.avatar)}" alt="">` : esc(first);
+    h += `<div class="c-nav">`
+      +    `<div class="c-back">${I.back(s.rbg)}${s.badge ? `<span class="c-badge">${esc(s.badge)}</span>` : ''}</div>`
+      +    `<div class="c-who"><div class="c-av" style="background:linear-gradient(${T.av1},${T.av2})">${av}</div><div class="c-nm">${esc(s.name)}${I.chev(T.meta)}</div></div>`
+      +    `<div class="c-vid">${I.video(s.rbg)}</div>`
+      +  `</div>`;
+  }
+  return h ? `<header class="c-hd">${h}</header>` : '';
+}
+
+function reactBadge(x, s, T){
+  const me = x.reactBy === 'me';
+  const bg = me ? s.rbg : T.rot, fg = me ? s.rfg : T.rotfg;
+  let inner = '', extra = '';
+  switch (x.react){
+    case 'heart': inner = I.heart(fg); break;
+    case 'up':    inner = I.up(fg); break;
+    case 'down':  inner = I.down(fg); break;
+    case 'haha':  inner = 'HaHa'; extra = 'font-size:8px;'; break;
+    case 'excl':  inner = '!!'; extra = 'font-size:13px;'; break;
+    case 'ques':  inner = '?'; extra = 'font-size:14px;'; break;
+    default: return '';
+  }
+  return `<span class="c-react" style="background:${bg};color:${fg};${extra}">${inner}</span>`;
+}
+
+function statusHTML(x){
+  if (x.side !== 'right' || !x.status) return '';
+  const label = x.status === 'read' ? '읽음' : '전달됨';
+  const t = x.status === 'read' && x.statusTime ? ' ' + esc(x.statusTime) : '';
+  return `<div class="c-status"><b>${label}</b>${t}</div>`;
+}
+
+function bubbleHTML(x, s, text, last, badge, T){
+  const right = x.side === 'right';
+  const custom = x.type === 'msg' && x.custom && HEX.test(x.bg || '') && HEX.test(x.fg || '');
+  const bg = custom ? x.bg : (right ? s.rbg : s.lbg);
+  const fg = custom ? x.fg : (right ? s.rfg : s.lfg);
+  const align = ['left','center','right'].includes(x.align) ? x.align : 'left';
+  return `<div class="c-bub${last ? (right ? ' tr' : ' tl') : ''}" style="background:${bg};color:${fg};text-align:${align}">`
+       + esc(text) + (last ? tail(x.side, bg) : '') + (badge ? reactBadge(x, s, T) : '') + `</div>`;
+}
+
+function chatInner(exporting){
+  const s = state.settings, T = TH[s.mode], B = state.blocks;
+  const isB = y => y && (y.type === 'msg' || y.type === 'photo');
+  let rows = '';
+
+  B.forEach((x, i) => {
+    const p = B[i - 1], n = B[i + 1];
+    const gs   = !(isB(p) && p.side === x.side);
+    const last = !(isB(n) && n.side === x.side);
+    const side = x.side === 'right' ? 'right' : 'left';
+    const cls  = `c-row ${side === 'right' ? 'c-r' : 'c-l'}${gs ? ' gs' : ''}${x.react ? ' hr' : ''}`;
+
+    if (x.type === 'msg'){
+      rows += `<div class="${cls}">${bubbleHTML(x, s, x.text, last, !!x.react, T)}${statusHTML(x)}</div>`;
+    }
+    else if (x.type === 'photo'){
+      const hasText = !!(x.text && x.text.trim());
+      const photo = `<div class="c-photo${x.corner === 'square' ? ' sq' : ''}">${x.img ? `<img src="${esc(x.img)}" alt="">` : ''}${x.react ? reactBadge(x, s, T) : ''}</div>`;
+      rows += `<div class="${cls}">${photo}${hasText ? bubbleHTML(x, s, x.text, last, false, T) : ''}${statusHTML(x)}</div>`;
+    }
+    else if (x.type === 'typing'){
+      const c = s.lbg, d = s.lfg;
+      rows += `<div class="c-row c-l tp${gs ? ' gs' : ''}"><div class="c-typing" style="background:${c}">`
+            + `<i style="background:${d};opacity:.35"></i><i style="background:${d};opacity:.55"></i><i style="background:${d};opacity:.8"></i>`
+            + `<b class="c1" style="background:${c}"></b><b class="c2" style="background:${c}"></b></div></div>`;
+    }
+    else if (x.type === 'narr'){
+      const col = HEX.test(x.color || '') ? x.color : T.meta;
+      rows += `<div class="c-narr" style="color:${col};font-style:${x.italic ? 'italic' : 'normal'}">${esc(x.text)}</div>`;
+    }
+    else if (x.type === 'stamp'){
+      rows += `<div class="c-stamp">${x.bold ? `<b>${esc(x.bold)}</b>` : ''}${x.bold && x.normal ? ' ' : ''}${esc(x.normal || '')}</div>`;
+    }
+  });
+
+  if (!B.length && !exporting){
+    rows = '<div class="c-empty">왼쪽에서 블록을 추가하면<br>여기에 대화가 나타나요.</div>';
+  }
+
+  let h = headerHTML(s, T);
+  h += `<main class="c-body">${rows}</main>`;
+  if (s.showInput){
+    h += `<footer class="c-ib"><div class="c-ibr">`
+       +   `<span class="c-plus" style="background:${T.plus}">${I.plus(T.plusfg)}</span>`
+       +   `<div class="c-inp" style="border-color:${T.iline}"><span style="color:${T.hint}">${esc(s.placeholder)}</span>${I.mic(T.hint)}</div>`
+       + `</div><div class="c-home" style="background:${T.text}"></div></footer>`;
+  }
+  return h;
+}
+
+function chatMarkup(){
+  return `<div class="chat" style="${rootStyle()}">${chatInner(true)}</div>`;
+}
+
+const chatEl = $('#chat');
+function renderPreview(){
+  chatEl.style.cssText = rootStyle();
+  chatEl.innerHTML = chatInner(false);
+}
+
+/* ───────── 블록 목록 ───────── */
+const oneLine = t => String(t || '').replace(/\s+/g, ' ').trim();
+
+function summary(b){
+  switch (b.type){
+    case 'msg':   return esc(oneLine(b.text));
+    case 'photo': return `<img class="th" src="${esc(b.img || '')}" alt="">${esc(oneLine(b.text) || '사진')}`;
+    case 'narr':  return esc(oneLine(b.text));
+    case 'stamp': return esc(oneLine((b.bold || '') + ' ' + (b.normal || '')));
+    case 'typing':return '입력 중 표시';
+  }
+  return '';
+}
+
+function renderList(){
+  $('#count').textContent = state.blocks.length;
+  const ul = $('#list');
+  if (!state.blocks.length){
+    ul.innerHTML = '<li class="empty-list">아직 추가된 블록이 없어요.</li>';
+    return;
+  }
+  ul.innerHTML = state.blocks.map((b, i) => {
+    const dot = b.side ? `<i class="dot ${b.side}" title="${b.side === 'right' ? '보낸' : '받은'} 메시지"></i>` : '';
+    return `<li class="item${b.id === editingId ? ' sel' : ''}" data-id="${b.id}">`
+      + `<span class="no">${i + 1}</span>${dot}<span class="tag">${TL[b.type]}</span><span class="sum">${summary(b)}</span>`
+      + `<span class="ops">`
+      +   `<button type="button" data-op="up" title="위로" aria-label="위로">↑</button>`
+      +   `<button type="button" data-op="down" title="아래로" aria-label="아래로">↓</button>`
+      +   `<button type="button" data-op="dup" title="복제" aria-label="복제">⧉</button>`
+      +   `<button type="button" data-op="del" title="삭제" aria-label="삭제">✕</button>`
+      + `</span></li>`;
+  }).join('');
+}
+
+const stage = $('#stage');
+function render(scrollEnd){
+  renderPreview();
+  renderList();
+  save();
+  if (scrollEnd) stage.scrollTop = stage.scrollHeight;
+}
+
+$('#list').addEventListener('click', e => {
+  const li = e.target.closest('.item');
+  if (!li) return;
+  const id = li.dataset.id;
+  const i = state.blocks.findIndex(b => b.id === id);
+  if (i < 0) return;
+  const op = e.target.closest('[data-op]');
+  if (!op){ startEdit(id); return; }
+  const B = state.blocks;
+  switch (op.dataset.op){
+    case 'up':   if (i > 0){ [B[i-1], B[i]] = [B[i], B[i-1]]; } break;
+    case 'down': if (i < B.length - 1){ [B[i+1], B[i]] = [B[i], B[i+1]]; } break;
+    case 'dup':  B.splice(i + 1, 0, Object.assign({}, B[i], { id: uid() })); break;
+    case 'del':  B.splice(i, 1); if (editingId === id) cancelEdit(); break;
+  }
+  render(false);
+});
+
+/* ───────── 블록 추가/수정 폼 ───────── */
+const form = { type:'msg', side:'left', align:'left', corner:'round', img:'' };
+const F = {
+  text:$('#fText'), ptext:$('#fPText'), react:$('#fReact'), reactBy:$('#fReactBy'),
+  status:$('#fStatus'), statusTime:$('#fStatusTime'), custom:$('#fCustom'), bg:$('#fBg'), fg:$('#fFg'),
+  narr:$('#fNarr'), ncolor:$('#fNColor'), italic:$('#fItalic'), bold:$('#fBold'), normal:$('#fNormal')
+};
+
+function setSeg(id, v){ $$('#' + id + ' button').forEach(b => b.classList.toggle('on', b.dataset.v === v)); }
+function segInit(id, key, after){
+  $('#' + id).addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    form[key] = b.dataset.v;
+    setSeg(id, b.dataset.v);
+    if (after) after();
+  });
+}
+
+function syncForm(){
+  $$('[data-show]').forEach(el => {
+    let ok = el.dataset.show.split(' ').includes(form.type);
+    if (ok && el.dataset.need === 'right') ok = form.side === 'right';
+    el.hidden = !ok;
+  });
+  $('#customColors').hidden = !F.custom.checked;
+}
+function syncPhotoUI(){
+  const p = $('#photoPrev');
+  p.hidden = !form.img;
+  if (form.img) p.src = form.img;
+  $('#btnClearPhoto').hidden = !form.img;
+  $('#btnPickPhoto').textContent = form.img ? '다른 사진' : '사진 선택';
+}
+function syncColorCodes(root){
+  (root || document).querySelectorAll('.clr').forEach(l => {
+    const i = l.querySelector('input'), c = l.querySelector('code');
+    if (i && c) c.textContent = i.value;
+  });
+}
+function autoReactBy(){ F.reactBy.value = form.side === 'right' ? 'other' : 'me'; }
+
+segInit('typeSeg', 'type', syncForm);
+segInit('sideSeg', 'side', () => { autoReactBy(); syncForm(); });
+segInit('alignSeg', 'align');
+segInit('cornerSeg', 'corner');
+
+F.custom.addEventListener('change', () => {
+  if (F.custom.checked){
+    const s = state.settings, r = form.side === 'right';
+    F.bg.value = r ? s.rbg : s.lbg;
+    F.fg.value = r ? s.rfg : s.lfg;
+    syncColorCodes($('#customColors'));
+  }
+  syncForm();
+});
+[F.bg, F.fg, F.ncolor].forEach(i => i.addEventListener('input', () => syncColorCodes(i.closest('div') || document)));
+$('#btnSms').addEventListener('click', () => { F.bg.value = '#34c759'; F.fg.value = '#ffffff'; syncColorCodes($('#customColors')); });
+
+$('#btnPickPhoto').addEventListener('click', () => $('#fPhoto').click());
+$('#btnClearPhoto').addEventListener('click', () => { form.img = ''; syncPhotoUI(); });
+$('#fPhoto').addEventListener('change', async e => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  try{ form.img = await fileToDataURL(f, 1400); syncPhotoUI(); }
+  catch(err){ toast('이미지를 불러오지 못했어요. 다른 파일로 시도해 주세요.'); }
+});
+
+function validate(){
+  const t = form.type;
+  if (t === 'msg'   && !F.text.value.trim()) return '메시지를 입력해 주세요.';
+  if (t === 'photo' && !form.img) return '사진을 선택해 주세요.';
+  if (t === 'narr' && !F.narr.value.trim()) return '나레이션을 입력해 주세요.';
+  if (t === 'stamp' && !F.bold.value.trim() && !F.normal.value.trim()) return '날짜나 시간을 입력해 주세요.';
+  return '';
+}
+
+function readForm(){
+  const t = form.type;
+  const b = { id: editingId || uid(), type: t };
+  if (t === 'msg' || t === 'photo' || t === 'typing') b.side = form.side;
+  if (t === 'msg'){
+    b.text = F.text.value.replace(/\s+$/, '');
+    b.align = form.align;
+    if (F.custom.checked){ b.custom = true; b.bg = F.bg.value; b.fg = F.fg.value; }
+  }
+  if (t === 'photo'){
+    b.img = form.img; b.corner = form.corner; b.text = F.ptext.value.replace(/\s+$/, '');
+  }
+  if (t === 'msg' || t === 'photo'){
+    if (F.react.value){ b.react = F.react.value; b.reactBy = F.reactBy.value; }
+    if (form.side === 'right' && F.status.value){ b.status = F.status.value; b.statusTime = F.statusTime.value.trim(); }
+  }
+  if (t === 'narr'){ b.text = F.narr.value.replace(/\s+$/, ''); b.color = F.ncolor.value; b.italic = F.italic.checked; }
+  if (t === 'stamp'){ b.bold = F.bold.value.trim(); b.normal = F.normal.value.trim(); }
+  return b;
+}
+
+function clearFields(){
+  F.text.value = ''; F.ptext.value = ''; F.narr.value = '';
+  F.bold.value = ''; F.normal.value = '';
+  F.react.value = ''; F.status.value = ''; F.statusTime.value = '';
+  F.custom.checked = false;
+  form.img = '';
+  autoReactBy();
+  syncPhotoUI(); syncForm();
+}
+
+function submit(){
+  const err = validate();
+  if (err){ toast(err); return; }
+  const b = readForm();
+  if (editingId){
+    const i = state.blocks.findIndex(x => x.id === editingId);
+    if (i > -1) state.blocks[i] = b;
+    cancelEdit();
+    render(false);
+    toast('수정했어요.');
+  } else {
+    state.blocks.push(b);
+    clearFields();
+    render(true);
+    const focusEl = form.type === 'msg' ? F.text : form.type === 'narr' ? F.narr : null;
+    if (focusEl) focusEl.focus();
+  }
+}
+$('#btnAdd').addEventListener('click', submit);
+[F.text, F.ptext, F.narr].forEach(el => el.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); submit(); }
+}));
+
+function startEdit(id){
+  const b = state.blocks.find(x => x.id === id);
+  if (!b) return;
+  editingId = id;
+  form.type = b.type;
+  form.side = b.side || 'left';
+  form.align = b.align || 'left';
+  form.corner = b.corner || 'round';
+  form.img = b.img || '';
+  setSeg('typeSeg', form.type); setSeg('sideSeg', form.side); setSeg('alignSeg', form.align); setSeg('cornerSeg', form.corner);
+
+  F.text.value  = b.type === 'msg'   ? (b.text || '') : '';
+  F.ptext.value = b.type === 'photo' ? (b.text || '') : '';
+  F.narr.value  = b.type === 'narr'  ? (b.text || '') : '';
+  F.react.value = b.react || '';
+  F.reactBy.value = b.reactBy || (form.side === 'right' ? 'other' : 'me');
+  F.status.value = b.status || '';
+  F.statusTime.value = b.statusTime || '';
+  F.custom.checked = !!b.custom;
+  const s = state.settings, r = form.side === 'right';
+  F.bg.value = HEX.test(b.bg || '') ? b.bg : (r ? s.rbg : s.lbg);
+  F.fg.value = HEX.test(b.fg || '') ? b.fg : (r ? s.rfg : s.lfg);
+  F.ncolor.value = HEX.test(b.color || '') ? b.color : '#8e8e93';
+  F.italic.checked = !!b.italic;
+  F.bold.value = b.bold || '';
+  F.normal.value = b.normal || '';
+  syncColorCodes($('#formSec'));
+
+  $('#formTitle').textContent = '블록 수정';
+  $('#btnAdd').textContent = '수정 완료';
+  $('#btnCancelEdit').hidden = false;
+  syncForm(); syncPhotoUI(); renderList();
+  $('#formSec').scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+function cancelEdit(){
+  editingId = null;
+  $('#formTitle').textContent = '블록 추가';
+  $('#btnAdd').textContent = '+ 블록 추가';
+  $('#btnCancelEdit').hidden = true;
+  clearFields();
+  renderList();
+}
+$('#btnCancelEdit').addEventListener('click', cancelEdit);
+
+/* ───────── 이미지 처리 ───────── */
+function loadImg(file){
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file);
+    const im = new Image();
+    im.onload = () => res({ im, url });
+    im.onerror = () => { URL.revokeObjectURL(url); rej(new Error('image')); };
+    im.src = url;
+  });
+}
+async function fileToDataURL(file, max){
+  const { im, url } = await loadImg(file);
+  let w = im.naturalWidth, h = im.naturalHeight;
+  const k = Math.min(1, max / Math.max(w, h));
+  w = Math.max(1, Math.round(w * k)); h = Math.max(1, Math.round(h * k));
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const x = c.getContext('2d');
+  x.fillStyle = '#fff'; x.fillRect(0, 0, w, h);
+  x.drawImage(im, 0, 0, w, h);
+  URL.revokeObjectURL(url);
+  return c.toDataURL('image/jpeg', .9);
+}
+
+/* ───────── 프로필 사진 자르기 ───────── */
+const S_CROP = 280;
+const crop = { im:null, url:'', base:1, zoom:1, x:0, y:0 };
+const cv = $('#cropCv'), cctx = cv.getContext('2d');
+
+function cropPaint(ctx, size, mask){
+  const k = size / S_CROP, sc = crop.base * crop.zoom;
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, size, size);
+  ctx.drawImage(crop.im, crop.x * k, crop.y * k, crop.im.naturalWidth * sc * k, crop.im.naturalHeight * sc * k);
+  if (mask){
+    ctx.save();
+    ctx.fillStyle = 'rgba(34,27,61,.55)';
+    ctx.beginPath();
+    ctx.rect(0, 0, size, size);
+    ctx.arc(size / 2, size / 2, size / 2 - 1, 0, Math.PI * 2, true);
+    ctx.fill('evenodd');
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(size / 2, size / 2, size / 2 - 1, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+}
+function cropClamp(){
+  const sc = crop.base * crop.zoom, w = crop.im.naturalWidth * sc, h = crop.im.naturalHeight * sc;
+  crop.x = Math.min(0, Math.max(S_CROP - w, crop.x));
+  crop.y = Math.min(0, Math.max(S_CROP - h, crop.y));
+}
+function cropOpen(im, url){
+  crop.im = im; crop.url = url;
+  crop.base = Math.max(S_CROP / im.naturalWidth, S_CROP / im.naturalHeight);
+  crop.zoom = 1; $('#cropZoom').value = 1;
+  crop.x = (S_CROP - im.naturalWidth * crop.base) / 2;
+  crop.y = (S_CROP - im.naturalHeight * crop.base) / 2;
+  cropPaint(cctx, S_CROP, true);
+  $('#cropModal').hidden = false;
+}
+function cropClose(){
+  $('#cropModal').hidden = true;
+  if (crop.url) URL.revokeObjectURL(crop.url);
+  crop.im = null; crop.url = '';
+}
+let drag = null;
+cv.addEventListener('pointerdown', e => { drag = { x:e.clientX, y:e.clientY, ox:crop.x, oy:crop.y }; cv.setPointerCapture(e.pointerId); });
+cv.addEventListener('pointermove', e => {
+  if (!drag || !crop.im) return;
+  const k = S_CROP / cv.getBoundingClientRect().width;
+  crop.x = drag.ox + (e.clientX - drag.x) * k;
+  crop.y = drag.oy + (e.clientY - drag.y) * k;
+  cropClamp(); cropPaint(cctx, S_CROP, true);
+});
+['pointerup', 'pointercancel'].forEach(t => cv.addEventListener(t, () => { drag = null; }));
+$('#cropZoom').addEventListener('input', e => {
+  if (!crop.im) return;
+  const old = crop.base * crop.zoom;
+  const cx = (S_CROP / 2 - crop.x) / old, cy = (S_CROP / 2 - crop.y) / old;
+  crop.zoom = Number(e.target.value);
+  const ns = crop.base * crop.zoom;
+  crop.x = S_CROP / 2 - cx * ns; crop.y = S_CROP / 2 - cy * ns;
+  cropClamp(); cropPaint(cctx, S_CROP, true);
+});
+$('#cropCancel').addEventListener('click', cropClose);
+$('#cropModal').addEventListener('click', e => { if (e.target.id === 'cropModal') cropClose(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#cropModal').hidden) cropClose(); });
+$('#cropOk').addEventListener('click', () => {
+  if (!crop.im) return;
+  const out = document.createElement('canvas');
+  out.width = out.height = 256;
+  cropPaint(out.getContext('2d'), 256, false);
+  state.settings.avatar = out.toDataURL('image/jpeg', .9);
+  cropClose();
+  syncSettingsUI(); renderPreview(); save();
+});
+$('#btnAv').addEventListener('click', () => $('#fAv').click());
+$('#btnAvDel').addEventListener('click', () => { state.settings.avatar = ''; syncSettingsUI(); renderPreview(); save(); });
+$('#fAv').addEventListener('change', async e => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  try{ const r = await loadImg(f); cropOpen(r.im, r.url); }
+  catch(err){ toast('이미지를 불러오지 못했어요. 다른 파일로 시도해 주세요.'); }
+});
+
+/* ───────── 전체 설정 바인딩 ───────── */
+const SB = [
+  ['sName','name','text'], ['sBadge','badge','text'],
+  ['sWidth','width','num'], ['sFs','fs','num'],
+  ['sShowStatus','showStatus','bool'], ['sTime','time','text'],
+  ['sShowHeader','showHeader','bool'], ['sShowInput','showInput','bool'], ['sPh','placeholder','text'],
+  ['sLbg','lbg','color'], ['sLfg','lfg','color'], ['sRbg','rbg','color'], ['sRfg','rfg','color'],
+  ['sScale','scale','num']
+];
+
+function syncSettingsUI(){
+  const s = state.settings;
+  SB.forEach(([id, key, type]) => {
+    const el = $('#' + id);
+    if (type === 'bool') el.checked = !!s[key]; else el.value = s[key];
+  });
+  syncColorCodes($('#presets').parentElement.parentElement);
+  setSeg('modeSeg', s.mode);
+  const first = [...String(s.name || '?')][0] || '?';
+  $('#avPrev').innerHTML = s.avatar ? `<img src="${esc(s.avatar)}" alt="">` : esc(first);
+  $('#btnAvDel').hidden = !s.avatar;
+}
+
+SB.forEach(([id, key, type]) => {
+  const el = $('#' + id);
+  el.addEventListener(type === 'bool' ? 'change' : 'input', () => {
+    let v;
+    if (type === 'bool') v = el.checked;
+    else if (type === 'num') v = Number(el.value);
+    else v = el.value;
+    if (type === 'num' && !isFinite(v)) return;
+    state.settings[key] = v;
+    if (type === 'color') syncColorCodes(el.closest('.clr').parentElement);
+    if (key === 'name' && !state.settings.avatar) $('#avPrev').textContent = [...String(v || '?')][0] || '?';
+    renderPreview(); save();
+  });
+});
+
+$('#modeSeg').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  const s = state.settings, old = s.mode, nw = b.dataset.v;
+  if (old === nw) return;
+  if (s.lbg.toLowerCase() === MODE_DEF[old].lbg && s.lfg.toLowerCase() === MODE_DEF[old].lfg){
+    s.lbg = MODE_DEF[nw].lbg; s.lfg = MODE_DEF[nw].lfg;
+  }
+  s.mode = nw;
+  syncSettingsUI(); renderPreview(); save();
+});
+
+$('#presets').addEventListener('click', e => {
+  const b = e.target.closest('.chip');
+  if (!b) return;
+  state.settings.rbg = b.dataset.c;
+  state.settings.rfg = '#ffffff';
+  syncSettingsUI(); renderPreview(); save();
+});
+
+/* ───────── 내보내기 ───────── */
+function download(blob, name){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+}
+function stamp(){
+  const d = new Date(), p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
+}
+
+function exportHTML(){
+  if (!state.blocks.length){ toast('저장할 블록이 없어요.'); return; }
+  const s = state.settings, T = TH[s.mode];
+  const css = $('#chatCss').textContent;
+  const doc = '<!DOCTYPE html>\n<html lang="ko"><head><meta charset="utf-8">'
+    + '<meta name="viewport" content="width=device-width,initial-scale=1">'
+    + `<title>${esc(s.name)} 대화 백업</title>`
+    + '<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">'
+    + `<style>html,body{margin:0;background:${T.bg}}${css}\n.chat{width:min(var(--w),100%)}</style>`
+    + `</head><body>${chatMarkup()}</body></html>`;
+  download(new Blob([doc], { type:'text/html;charset=utf-8' }), `chat-backup-${stamp()}.html`);
+  toast('HTML 파일을 저장했어요.');
+}
+
+async function exportPNG(){
+  if (!state.blocks.length){ toast('저장할 블록이 없어요.'); return; }
+  if (typeof window.html2canvas !== 'function'){
+    toast('PNG 저장 도구를 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요.');
+    return;
+  }
+  const btn = $('#btnPng');
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = '저장 중…';
+
+  const holder = document.createElement('div');
+  holder.style.cssText = 'position:absolute;left:-10000px;top:0;';
+  holder.innerHTML = chatMarkup();
+  document.body.appendChild(holder);
+  const el = holder.firstElementChild;
+
+  try{
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    let scale = Math.round(clamp(state.settings.scale, 1, 3));
+    const h = el.offsetHeight;
+    let lowered = false;
+    while (scale > 1 && h * scale > 15000){ scale--; lowered = true; }
+    const canvas = await window.html2canvas(el, {
+      scale, backgroundColor: TH[state.settings.mode].bg, useCORS:true, logging:false
+    });
+    await new Promise((res, rej) => canvas.toBlob(blob => {
+      if (!blob) return rej(new Error('blob'));
+      download(blob, `chat-backup-${stamp()}.png`);
+      res();
+    }, 'image/png'));
+    toast(lowered ? '대화가 길어서 해상도를 낮춰 저장했어요.' : 'PNG 이미지를 저장했어요.');
+  }catch(err){
+    toast('PNG 저장에 실패했어요. 해상도를 낮추거나 대화를 나눠서 저장해 보세요.');
+  }finally{
+    holder.remove();
+    btn.disabled = false; btn.textContent = label;
+  }
+}
+$('#btnHtml').addEventListener('click', exportHTML);
+$('#btnPng').addEventListener('click', exportPNG);
+
+/* ───────── 프로젝트 파일 · 초기화 ───────── */
+$('#btnJsonSave').addEventListener('click', () => {
+  const data = { app:'chat-backup-editor', version:1, settings:state.settings, blocks:state.blocks };
+  download(new Blob([JSON.stringify(data)], { type:'application/json' }), `chat-project-${stamp()}.json`);
+  toast('프로젝트 파일을 저장했어요.');
+});
+$('#btnJsonLoad').addEventListener('click', () => $('#fJson').click());
+$('#fJson').addEventListener('change', e => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const d = JSON.parse(String(r.result));
+      if (!d || !Array.isArray(d.blocks)) throw new Error('format');
+      state = sanitize(d);
+      cancelEdit(); syncSettingsUI(); render(false);
+      toast('프로젝트를 불러왔어요.');
+    }catch(err){
+      toast('불러올 수 없는 파일이에요. 이 에디터에서 저장한 파일인지 확인해 주세요.');
+    }
+  };
+  r.readAsText(f);
+});
+
+$('#btnReset').addEventListener('click', () => {
+  if (!confirm('모든 블록과 설정을 초기화할까요? 이 작업은 되돌릴 수 없어요.')) return;
+  state = { settings: DEFAULTS(), blocks: [] };
+  cancelEdit(); syncSettingsUI(); render(false);
+  toast('초기화했어요.');
+});
+
+/* ───────── 시작 ───────── */
+loadSaved();
+setSeg('typeSeg', 'msg'); setSeg('sideSeg', 'left'); setSeg('alignSeg', 'left'); setSeg('cornerSeg', 'round');
+autoReactBy();
+syncForm(); syncPhotoUI();
+syncColorCodes($('#customColors'));
+syncSettingsUI();
+render(false);
+})();
+</script>
+</body>
+</html>
