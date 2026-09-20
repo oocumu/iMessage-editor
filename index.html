@@ -492,6 +492,7 @@ details[open] summary::after{transform:rotate(-135deg)}
         </div>
         <label class="check"><input type="checkbox" id="sShowHeader"> 상단 대화 상대 표시</label>
         <label class="check"><input type="checkbox" id="sShowInput"> 하단 입력창 표시</label>
+        <label class="check"><input type="checkbox" id="sShowHome"> 하단 검정 바(홈 인디케이터) 표시</label>
         <div class="field" style="margin-top:8px">
           <label class="lb" for="sPh">입력창 문구</label>
           <input type="text" id="sPh" maxlength="30">
@@ -601,7 +602,7 @@ function toast(msg){
 /* ───────── 상태 ───────── */
 const DEFAULTS = () => ({
   mode:'light', width:390, fs:17,
-  showStatus:true, time:'9:41', showHeader:true, showInput:true, placeholder:'iMessage',
+  showStatus:true, time:'9:41', showHeader:true, showInput:true, showHome:true, placeholder:'iMessage',
   name:'이름', badge:'3', avatar:'',
   lbg:'#e9e9eb', lfg:'#000000', rbg:'#0a84ff', rfg:'#ffffff',
   scale:2
@@ -780,11 +781,16 @@ function chatInner(exporting){
 
   let h = headerHTML(s, T);
   h += `<main class="c-body">${rows}</main>`;
-  if (s.showInput){
-    h += `<footer class="c-ib"><div class="c-ibr">`
-       +   `<span class="c-plus" style="background:${T.plus}">${I.plus(T.plusfg)}</span>`
-       +   `<div class="c-inp" style="border-color:${T.iline}"><span style="color:${T.hint}">${esc(s.placeholder)}</span>${I.mic(T.hint)}</div>`
-       + `</div><div class="c-home" style="background:${T.text}"></div></footer>`;
+  if (s.showInput || s.showHome){
+    h += `<footer class="c-ib">`;
+    if (s.showInput){
+      h += `<div class="c-ibr">`
+         +   `<span class="c-plus" style="background:${T.plus}">${I.plus(T.plusfg)}</span>`
+         +   `<div class="c-inp" style="border-color:${T.iline}"><span style="color:${T.hint}">${esc(s.placeholder)}</span>${I.mic(T.hint)}</div>`
+         + `</div>`;
+    }
+    if (s.showHome) h += `<div class="c-home" style="background:${T.text}"></div>`;
+    h += `</footer>`;
   }
   return h;
 }
@@ -1146,7 +1152,7 @@ const SB = [
   ['sName','name','text'], ['sBadge','badge','text'],
   ['sWidth','width','num'], ['sFs','fs','num'],
   ['sShowStatus','showStatus','bool'], ['sTime','time','text'],
-  ['sShowHeader','showHeader','bool'], ['sShowInput','showInput','bool'], ['sPh','placeholder','text'],
+  ['sShowHeader','showHeader','bool'], ['sShowInput','showInput','bool'], ['sShowHome','showHome','bool'], ['sPh','placeholder','text'],
   ['sLbg','lbg','color'], ['sLfg','lfg','color'], ['sRbg','rbg','color'], ['sRfg','rfg','color'],
   ['sScale','scale','num']
 ];
